@@ -2,18 +2,18 @@
 
 #include "stdafx.h"
 
-class RawSocketsMainWindow
+struct WinSock
 {
-public:
-	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+	WinSock();
+	~WinSock();
 
-private:
 	bool CheckRawSocketSupport();
 };
 
-class WinSock
+class RawSocketsMainWindow
 {
+	WinSock winsock;
+
 public:
-	WinSock();
-	~WinSock();
+	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 };

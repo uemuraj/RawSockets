@@ -9,7 +9,7 @@ LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	switch (uMsg)
 	{
 	case WM_CREATE:
-		CheckRawSocketSupport();
+		winsock.CheckRawSocketSupport();
 		return 0;
 
 	case WM_DESTROY:
@@ -21,9 +21,28 @@ LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	}
 }
 
-bool RawSocketsMainWindow::CheckRawSocketSupport()
+WinSock::WinSock()
 {
-	WinSock winSock;
+	WSADATA wsaData{};
+
+	if (int error = ::WSAStartup(MAKEWORD(2, 2), &wsaData))
+	{
+		FAIL(what(error));
+	}
+	else
+	{
+		INFO(HIBYTE(wsaData.wHighVersion), LOBYTE(wsaData.wHighVersion));
+	}
+}
+
+WinSock::~WinSock()
+{
+	::WSACleanup();
+}
+
+bool WinSock::CheckRawSocketSupport()
+{
+	bool ip4 = false, ip6 = false;
 
 	DWORD bufferLength = sizeof(WSAPROTOCOL_INFO) * 60;
 	auto protocolInfo = std::make_unique<WSAPROTOCOL_INFO[]>(60);
@@ -50,6 +69,8 @@ bool RawSocketsMainWindow::CheckRawSocketSupport()
 			break;
 		case SOCK_RAW:
 			::OutputDebugString(L" SOCK_RAW");
+			if (protocolInfo[i].iAddressFamily == AF_INET) ip4 = true;
+			if (protocolInfo[i].iAddressFamily == AF_INET6) ip6 = true;
 			break;
 		case SOCK_RDM:
 			::OutputDebugString(L" SOCK_RDM");
@@ -62,24 +83,5 @@ bool RawSocketsMainWindow::CheckRawSocketSupport()
 		::OutputDebugString(L"\r\n");
 	}
 
-	return false;
-}
-
-WinSock::WinSock()
-{
-	WSADATA wsaData{};
-
-	if (int error = ::WSAStartup(MAKEWORD(2, 2), &wsaData))
-	{
-		FAIL(what(error));
-	}
-	else
-	{
-		INFO(HIBYTE(wsaData.wHighVersion), LOBYTE(wsaData.wHighVersion));
-	}
-}
-
-WinSock::~WinSock()
-{
-	::WSACleanup();
+	return ip4 || ip6;
 }
