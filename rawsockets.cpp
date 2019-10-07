@@ -2,6 +2,7 @@
 #include "rawsockets.h"
 
 // https://docs.microsoft.com/en-us/windows/win32/winsock/tcp-ip-raw-sockets-2
+// https://docs.microsoft.com/en-us/windows/win32/api/_winsock/#functions
 
 LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
