@@ -24,7 +24,7 @@ bool RawSocketsMainWindow::CheckRawSocketSupport()
 {
 	WinSock winSock;
 
-	WSAPROTOCOL_INFO protocolInfo[64]{};
+	WSAPROTOCOL_INFO protocolInfo[40]{};
 	DWORD bufferLen = sizeof(protocolInfo);
 
 	int error{};
@@ -68,7 +68,14 @@ WinSock::WinSock()
 {
 	WSADATA wsaData{};
 
-	::WSAStartup(MAKEWORD(2, 2), &wsaData);
+	if (int error = ::WSAStartup(MAKEWORD(2, 2), &wsaData))
+	{
+		FAIL(what(error));
+	}
+	else
+	{
+		INFO(MAKEWORD(wsaData.wHighVersion, wsaData.wVersion));
+	}
 }
 
 WinSock::~WinSock()
