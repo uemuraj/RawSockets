@@ -14,22 +14,6 @@
 
 namespace logger
 {
-	template <typename P>
-	std::wstringstream & message(std::wstringstream && buf, P && value)
-	{
-		buf << L' ' << value << L"\r\n";
-
-		return buf;
-	}
-
-	template <typename P, typename ... Q>
-	std::wstringstream & message(std::wstringstream && buf, P && value, Q && ... rest)
-	{
-		buf << L' ' << value;
-
-		return message(buf, std::move(rest)...);
-	}
-
 	class what
 	{
 		const HRESULT code;
@@ -45,6 +29,22 @@ namespace logger
 	inline std::wostream & operator<<(std::wostream & os, const what & error)
 	{
 		return error.Print(os);
+	}
+
+	template <typename P>
+	std::wstringstream & message(std::wstringstream && buf, P && value)
+	{
+		buf << L' ' << value << L"\r\n";
+
+		return buf;
+	}
+
+	template <typename P, typename ... Q>
+	std::wstringstream & message(std::wstringstream && buf, P && value, Q && ... rest)
+	{
+		buf << L' ' << value;
+
+		return message(std::move(buf), std::move(rest)...);
 	}
 }
 

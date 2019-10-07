@@ -74,7 +74,7 @@ WinSock::WinSock()
 	}
 	else
 	{
-		INFO(MAKEWORD(wsaData.wHighVersion, wsaData.wVersion));
+		INFO(HIBYTE(wsaData.wHighVersion), LOBYTE(wsaData.wHighVersion));
 	}
 }
 
