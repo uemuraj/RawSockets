@@ -10,6 +10,7 @@
 #error
 #endif
 
+#include <memory>
 #include <sstream>
 
 namespace logger

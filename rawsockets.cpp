@@ -25,11 +25,11 @@ bool RawSocketsMainWindow::CheckRawSocketSupport()
 {
 	WinSock winSock;
 
-	WSAPROTOCOL_INFO protocolInfo[40]{};
-	DWORD bufferLen = sizeof(protocolInfo);
+	DWORD bufferLength = sizeof(WSAPROTOCOL_INFO) * 60;
+	auto protocolInfo = std::make_unique<WSAPROTOCOL_INFO[]>(60);
 
 	int error{};
-	int count = ::WSCEnumProtocols(nullptr, protocolInfo, &bufferLen, &error);
+	int count = ::WSCEnumProtocols(nullptr, protocolInfo.get(), &bufferLength, &error);
 
 	for (int i = 0; i < count; ++i)
 	{
