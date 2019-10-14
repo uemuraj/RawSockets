@@ -11,7 +11,9 @@
 #endif
 
 #include <memory>
+#include <utility>
 #include <sstream>
+#include <vector>
 
 namespace logger
 {
@@ -53,7 +55,7 @@ namespace logger
 #define MACRO_LOGGER_NUMBER2TEXT(n)	MACRO_LOGGER_NUMBER2TEXT2(n)
 #define MACRO_LOGGER_HEADER(file, line, func)	TEXT(file "(" MACRO_LOGGER_NUMBER2TEXT(line) "): " func)
 
-#define FAIL(...)	if (::IsDebuggerPresent()) { ::OutputDebugString(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__)); ::OutputDebugString(logger::message(std::wstringstream(), __VA_ARGS__).str().c_str()); }
-#define INFO(...)	if (::IsDebuggerPresent()) { ::OutputDebugString(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__)); ::OutputDebugString(logger::message(std::wstringstream(), __VA_ARGS__).str().c_str()); }
+#define FAIL(...)	if (::IsDebuggerPresent()) { ::OutputDebugString(logger::message(std::wstringstream(), MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__).str().c_str()); }
+#define INFO(...)	if (::IsDebuggerPresent()) { ::OutputDebugString(logger::message(std::wstringstream(), MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__).str().c_str()); }
 
 using logger::what;

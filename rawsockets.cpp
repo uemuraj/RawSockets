@@ -4,34 +4,17 @@
 // https://docs.microsoft.com/en-us/windows/win32/winsock/tcp-ip-raw-sockets-2
 // https://docs.microsoft.com/en-us/windows/win32/api/_winsock/#functions
 
-LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+WinSock::WinSock() : WSADATA{}
 {
-	switch (uMsg)
+	m_error = ::WSAStartup(MAKEWORD(2, 2), this);
+
+	if (!m_error)
 	{
-	case WM_CREATE:
-		winsock.CheckRawSocketSupport();
-		return 0;
-
-	case WM_DESTROY:
-		::PostQuitMessage(0);
-		return 0;
-
-	default:
-		return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
-	}
-}
-
-WinSock::WinSock()
-{
-	WSADATA wsaData{};
-
-	if (int error = ::WSAStartup(MAKEWORD(2, 2), &wsaData))
-	{
-		FAIL(what(error));
+		INFO(HIBYTE(wHighVersion), LOBYTE(wHighVersion));
 	}
 	else
 	{
-		INFO(HIBYTE(wsaData.wHighVersion), LOBYTE(wsaData.wHighVersion));
+		FAIL(what(m_error));
 	}
 }
 
@@ -40,48 +23,61 @@ WinSock::~WinSock()
 	::WSACleanup();
 }
 
-bool WinSock::CheckRawSocketSupport()
+std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>>  WinSock::GetProtocols()
 {
-	bool ip4 = false, ip6 = false;
+	DWORD length{};
 
-	DWORD bufferLength = sizeof(WSAPROTOCOL_INFO) * 60;
-	auto protocolInfo = std::make_unique<WSAPROTOCOL_INFO[]>(60);
-
-	int error{};
-	int count = ::WSCEnumProtocols(nullptr, protocolInfo.get(), &bufferLength, &error);
-
-	for (int i = 0; i < count; ++i)
+	if (::WSCEnumProtocols(nullptr, nullptr, &length, &m_error) == SOCKET_ERROR)
 	{
-		if (protocolInfo[i].ProtocolChain.ChainLen == 1)
-			::OutputDebugString(L"Base Service Provider: ");
-		else
-			::OutputDebugString(L"Layered Chain Entry: ");
-
-		::OutputDebugString(protocolInfo[i].szProtocol);
-
-		switch (protocolInfo[i].iSocketType)
+		if (m_error == WSAENOBUFS)
 		{
-		case SOCK_STREAM:
-			::OutputDebugString(L" SOCK_STREAM");
-			break;
-		case SOCK_DGRAM:
-			::OutputDebugString(L" SOCK_DGRAM");
-			break;
-		case SOCK_RAW:
-			::OutputDebugString(L" SOCK_RAW");
-			if (protocolInfo[i].iAddressFamily == AF_INET) ip4 = true;
-			if (protocolInfo[i].iAddressFamily == AF_INET6) ip6 = true;
-			break;
-		case SOCK_RDM:
-			::OutputDebugString(L" SOCK_RDM");
-			break;
-		case SOCK_SEQPACKET:
-			::OutputDebugString(L" SOCK_SEQPACKET");
-			break;
-		}
+			size_t n = length / sizeof(WSAPROTOCOL_INFO) + 1; // バイト数でなく要素数が必要
 
-		::OutputDebugString(L"\r\n");
+			auto buffer = std::make_unique<WSAPROTOCOL_INFO[]>(n);
+			auto count = ::WSCEnumProtocols(nullptr, buffer.get(), &length, &m_error);
+
+			if (count != SOCKET_ERROR)
+			{
+				return { count, std::move(buffer) };
+			}
+		}
 	}
 
-	return ip4 || ip6;
+	FAIL(what(m_error));
+	return {};
+}
+
+RawSockets::RawSockets()
+{
+	auto [count, protocols] = GetProtocols();
+
+	for (decltype(count) i = 0; i < count; ++i)
+	{
+		INFO(protocols[i].iSocketType, protocols[i].szProtocol);
+
+		if (protocols[i].iSocketType == SOCK_RAW)
+		{
+			m_protocols.emplace_back(protocols[i]);
+		}
+	}
+}
+
+RawSockets::~RawSockets()
+{
+}
+
+LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	switch (uMsg)
+	{
+	case WM_CREATE:
+		return m_rawSockets ? 0 : -1;
+
+	case WM_DESTROY:
+		::PostQuitMessage(0);
+		return 0;
+
+	default:
+		return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
+	}
 }
