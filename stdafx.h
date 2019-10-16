@@ -6,7 +6,7 @@
 #include <Winsock2.h>
 #include <ws2spi.h>
 
-#if !defined(UNICODE)
+#if !defined(UNICODE) || _MSVC_LANG < 201703L
 #error
 #endif
 
