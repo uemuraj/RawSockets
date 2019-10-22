@@ -1,10 +1,15 @@
+//
+// https://docs.microsoft.com/en-us/windows/win32/winsock/tcp-ip-raw-sockets-2
+// https://docs.microsoft.com/en-us/windows/win32/api/_winsock/#functions
+//
+
 #pragma once
 
-class WinSock : WSADATA
-{
-	int m_error;
+#include <memory>
+#include <vector>
 
-public:
+struct WinSock : WSADATA
+{
 	WinSock();
 	~WinSock();
 

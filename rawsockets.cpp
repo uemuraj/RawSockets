@@ -1,40 +1,46 @@
 #include "stdafx.h"
+#include "logger.h"
 #include "rawsockets.h"
 
-// https://docs.microsoft.com/en-us/windows/win32/winsock/tcp-ip-raw-sockets-2
-// https://docs.microsoft.com/en-us/windows/win32/api/_winsock/#functions
+using logger::what;
+
+#define FAIL(...) if (::IsDebuggerPresent()) { logger::OutputDebugConsole(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__); }
+#define INFO(...) if (::IsDebuggerPresent()) { logger::OutputDebugConsole(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__); }
+
 
 WinSock::WinSock() : WSADATA{}
 {
-	m_error = ::WSAStartup(MAKEWORD(2, 2), this);
-
-	if (!m_error)
+	if (auto error = ::WSAStartup(MAKEWORD(2, 2), this))
 	{
-		INFO(HIBYTE(wHighVersion), LOBYTE(wHighVersion));
+		FAIL(what(error));
 	}
 	else
 	{
-		FAIL(what(m_error));
+		INFO(HIBYTE(wHighVersion), LOBYTE(wHighVersion));
 	}
 }
 
 WinSock::~WinSock()
 {
-	::WSACleanup();
+	if (::WSACleanup())
+	{
+		FAIL(what(::WSAGetLastError()));
+	}
 }
 
-std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>>  WinSock::GetProtocols()
+std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>> WinSock::GetProtocols()
 {
+	int error{};
 	DWORD length{};
 
-	if (::WSCEnumProtocols(nullptr, nullptr, &length, &m_error) == SOCKET_ERROR)
+	if (::WSCEnumProtocols(nullptr, nullptr, &length, &error) == SOCKET_ERROR)
 	{
-		if (m_error == WSAENOBUFS)
+		if (error == WSAENOBUFS)
 		{
 			size_t n = length / sizeof(WSAPROTOCOL_INFO) + 1; // バイト数でなく要素数が必要
 
 			auto buffer = std::make_unique<WSAPROTOCOL_INFO[]>(n);
-			auto count = ::WSCEnumProtocols(nullptr, buffer.get(), &length, &m_error);
+			auto count = ::WSCEnumProtocols(nullptr, buffer.get(), &length, &error);
 
 			if (count != SOCKET_ERROR)
 			{
@@ -43,7 +49,7 @@ std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>>  WinSock::GetProtocols()
 		}
 	}
 
-	FAIL(what(m_error));
+	FAIL(what(error));
 	return {};
 }
 
