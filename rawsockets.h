@@ -34,6 +34,12 @@ class RawSocketsMainWindow
 {
 	RawSockets m_rawSockets;
 
+	WINDOWPOS m_window{};
+
 public:
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+private:
+	void RestoreWindowPos(HWND hwnd);
+	void SaveWindowPos(HWND hwnd);
 };
