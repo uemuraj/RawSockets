@@ -11,4 +11,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="logger.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="rawsockets.manifest" />
+  </ItemGroup>
 </Project>

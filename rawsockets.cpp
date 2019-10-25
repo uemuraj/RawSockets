@@ -80,6 +80,7 @@ LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	switch (uMsg)
 	{
 	case WM_CREATE:
+		m_statusWindow = ::CreateStatusWindow(WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP, NULL, hwnd, 100);
 		RestoreWindowPos(hwnd);
 		return m_rawSockets ? 0 : -1;
 
@@ -92,6 +93,8 @@ LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 		if (auto p = (WINDOWPOS *) lParam)
 		{
 			m_window = *p;
+			auto [cx, cy] = GetClientRect(m_window.cx, m_window.cy, ::GetWindowLong(hwnd, GWL_STYLE), ::GetWindowLong(hwnd, GWL_EXSTYLE));
+			::SendMessage(m_statusWindow, WM_SIZE, 0, MAKELPARAM(cx, cy));
 		}
 		return 0;
 
@@ -139,4 +142,13 @@ void RawSocketsMainWindow::SaveWindowPos(HWND hwnd)
 	g_config.Set(L"window.y", m_window.y);
 	g_config.Set(L"window.cx", m_window.cx);
 	g_config.Set(L"window.cy", m_window.cy);
+}
+
+std::pair<int, int> RawSocketsMainWindow::GetClientRect(int cx, int cy, DWORD style, DWORD exStyle, bool menu)
+{
+	RECT rect{ 0, 0, cx, cy };
+
+	::AdjustWindowRectEx(&rect, style, menu, exStyle);
+	
+	return { cx + rect.left - (rect.right -cx), cy + rect.top - (rect.bottom -cy) };
 }

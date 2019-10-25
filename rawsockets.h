@@ -33,8 +33,8 @@ public:
 class RawSocketsMainWindow
 {
 	RawSockets m_rawSockets;
-
 	WINDOWPOS m_window{};
+	HWND m_statusWindow{};
 
 public:
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -42,4 +42,6 @@ public:
 private:
 	void RestoreWindowPos(HWND hwnd);
 	void SaveWindowPos(HWND hwnd);
+
+	std::pair<int, int> GetClientRect(int cx, int cy, DWORD style, DWORD exStyle, bool menu = false);
 };
