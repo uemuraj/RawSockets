@@ -55,6 +55,13 @@ namespace
 		Registry & operator=(const Registry &&) = delete;
 	};
 
+	inline RECT GetWindowRect(HWND hwnd)
+	{
+		RECT rect{};
+		::GetWindowRect(hwnd, &rect);
+		return rect;
+	}
+
 	inline SIZE GetClientRectSizeOffset(CREATESTRUCT * p)
 	{
 		RECT rect{ p->x, p->y, p->cx, p->cy };
