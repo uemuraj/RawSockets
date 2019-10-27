@@ -14,14 +14,14 @@ namespace
 		WNDCLASSEX wc{ sizeof(wc) };
 
 		wc.hInstance = hInstance;
-		wc.lpfnWndProc = [] (HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { return p->WindowProc(hwnd, uMsg, wParam, lParam); };
+		wc.lpfnWndProc = [](HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) { return p->WindowProc(hwnd, uMsg, wParam, lParam); };
 		wc.lpszClassName = MainWindowClassName;
 
-		// TODO: カーソル、背景色、アイコンの設定
+		wc.hIcon = ::LoadIconW(nullptr, IDI_APPLICATION);
+		wc.hIconSm = ::LoadIconW(nullptr, IDI_APPLICATION);
+		wc.hCursor = ::LoadCursorW(nullptr, IDC_ARROW);
 
-		::RegisterClassEx(&wc);
-
-		return ::CreateWindowEx(0, MainWindowClassName, MainWindowTitleText, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, nullptr, nullptr, hInstance, nullptr);
+		return mainWindow.Create(hInstance, LPCWSTR(::RegisterClassEx(&wc)), MainWindowTitleText);
 	}
 }
 
