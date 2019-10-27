@@ -32,16 +32,21 @@ public:
 
 class RawSocketsMainWindow
 {
+	SIZE m_offset{};
+	SIZE m_client{};
+	HWND m_status{};
+
 	RawSockets m_rawSockets;
-	WINDOWPOS m_window{};
-	HWND m_statusWindow{};
 
 public:
+	HWND Create(HINSTANCE hInstance, LPCWSTR className, LPCWSTR windowName);
 	LRESULT WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+};
 
-private:
-	void RestoreWindowPos(HWND hwnd);
-	void SaveWindowPos(HWND hwnd);
+struct RawSocketsConfig : Registry
+{
+	using Registry::Registry;
 
-	std::pair<int, int> GetClientRect(int cx, int cy, DWORD style, DWORD exStyle, bool menu = false);
+	void SaveWindowPos(WindowPos && windowPos);
+	WindowPos LoadWindowPos();
 };

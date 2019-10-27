@@ -4,11 +4,7 @@
 
 using logger::what;
 
-#define FAIL(...) if (::IsDebuggerPresent()) { logger::OutputDebugConsole(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__); }
-#define INFO(...) if (::IsDebuggerPresent()) { logger::OutputDebugConsole(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__); }
-
-
-Registry g_config(L"Software\\uemuraj\\RawSockets");
+RawSocketsConfig g_config(L"Software\\uemuraj\\RawSockets");
 
 
 WinSock::WinSock() : WSADATA{}
@@ -38,6 +34,8 @@ std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>> WinSock::GetProtocols()
 
 	if (::WSCEnumProtocols(nullptr, nullptr, &length, &error) == SOCKET_ERROR)
 	{
+		INFO(what(error));
+
 		if (error == WSAENOBUFS)
 		{
 			size_t n = length / sizeof(WSAPROTOCOL_INFO) + 1; // バイト数でなく要素数が必要
@@ -75,26 +73,33 @@ RawSockets::~RawSockets()
 {
 }
 
+HWND RawSocketsMainWindow::Create(HINSTANCE hInstance, LPCWSTR className, LPCWSTR windowName)
+{
+	auto [x, y, cx, cy] = g_config.LoadWindowPos();
+
+	return ::CreateWindowEx(0, className, windowName, WS_OVERLAPPEDWINDOW, x, y, cx, cy, nullptr, nullptr, hInstance, nullptr);
+}
+
 LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
 	case WM_CREATE:
-		m_statusWindow = ::CreateStatusWindow(WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP, NULL, hwnd, 100);
-		RestoreWindowPos(hwnd);
+		m_offset = ::GetClientRectSizeOffset((CREATESTRUCT *) lParam);
+		m_client = ::GetClientRectSize((CREATESTRUCT *) lParam, m_offset);
+		m_status = ::CreateStatusWindow(WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP, nullptr, hwnd, 100);
 		return m_rawSockets ? 0 : -1;
 
 	case WM_DESTROY:
-		SaveWindowPos(hwnd);
+		g_config.SaveWindowPos(hwnd);
 		::PostQuitMessage(0);
 		return 0;
 
 	case WM_WINDOWPOSCHANGED:
-		if (auto p = (WINDOWPOS *) lParam)
+		if ((((WINDOWPOS *) lParam)->flags & SWP_NOSIZE) == 0)
 		{
-			m_window = *p;
-			auto [cx, cy] = GetClientRect(m_window.cx, m_window.cy, ::GetWindowLong(hwnd, GWL_STYLE), ::GetWindowLong(hwnd, GWL_EXSTYLE));
-			::SendMessage(m_statusWindow, WM_SIZE, 0, MAKELPARAM(cx, cy));
+			m_client = ::GetClientRectSize((WINDOWPOS *) lParam, m_offset);
+			::SendMessage(m_status, WM_SIZE, 0, MAKELPARAM(m_client.cx, m_client.cy));
 		}
 		return 0;
 
@@ -103,52 +108,42 @@ LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 	}
 }
 
-void RawSocketsMainWindow::RestoreWindowPos(HWND hwnd)
+void RawSocketsConfig::SaveWindowPos(WindowPos && windowPos)
 {
-	int x = 0, y = 0, cx = 0, cy = 0;
+	Set(L"window.x", windowPos.x);
+	Set(L"window.y", windowPos.y);
+	Set(L"window.cx", windowPos.cx);
+	Set(L"window.cy", windowPos.cy);
+}
 
-	g_config.Get(L"window.x", x);
-	g_config.Get(L"window.y", y);
-	g_config.Get(L"window.cx", cx);
-	g_config.Get(L"window.cy", cy);
+WindowPos RawSocketsConfig::LoadWindowPos()
+{
+	WindowPos windowPos(CW_USEDEFAULT, 0, CW_USEDEFAULT, 0);
 
-	if (cx > 0 && cy > 0)
+	Get(L"window.x", windowPos.x);
+	Get(L"window.y", windowPos.y);
+	Get(L"window.cx", windowPos.cx);
+	Get(L"window.cy", windowPos.cy);
+
+	if (windowPos.x > 0 && windowPos.y > 0 && windowPos.cx > 0 && windowPos.cy > 0)
 	{
-		// このウィンドウ位置に最も近いモニタを調べる
-		RECT rect{ x, y, x + cx, y + cy };
-
-		MONITORINFO info{ sizeof(info) };
+		// 最も近いモニタを調べ、ウィンドウ全体が表示可能であれば、位置とサイズを採用する
+		RECT rect = windowPos;
 		HMONITOR handle = ::MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO info{ sizeof(info) };
 
 		if (::GetMonitorInfo(handle, &info))
 		{
 			if (::PtInRect(&info.rcWork, { rect.left, rect.top }) && ::PtInRect(&info.rcWork, { rect.right, rect.bottom }))
 			{
-				// このモニタに収まるのであれば、ウィンドウの位置とサイズを復元する
-				::SetWindowPos(hwnd, HWND_TOP, x, y, cx, cy, SWP_SHOWWINDOW);
+				return windowPos;
 			}
-			else
-			{
-				// そうでなければ、ウィンドウのサイズだけを復元する
-				::SetWindowPos(hwnd, HWND_TOP, 0, 0, cx, cy, SWP_SHOWWINDOW | SWP_NOMOVE);
-			}
+
+			windowPos.x = CW_USEDEFAULT; // 位置は採用しない
+			return windowPos;
 		}
 	}
-}
 
-void RawSocketsMainWindow::SaveWindowPos(HWND hwnd)
-{
-	g_config.Set(L"window.x", m_window.x);
-	g_config.Set(L"window.y", m_window.y);
-	g_config.Set(L"window.cx", m_window.cx);
-	g_config.Set(L"window.cy", m_window.cy);
-}
-
-std::pair<int, int> RawSocketsMainWindow::GetClientRect(int cx, int cy, DWORD style, DWORD exStyle, bool menu)
-{
-	RECT rect{ 0, 0, cx, cy };
-
-	::AdjustWindowRectEx(&rect, style, menu, exStyle);
-	
-	return { cx + rect.left - (rect.right -cx), cy + rect.top - (rect.bottom -cy) };
+	windowPos.x = windowPos.cx = CW_USEDEFAULT; // 位置もサイズも採用しない
+	return windowPos;
 }

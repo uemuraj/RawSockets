@@ -62,6 +62,25 @@ namespace
 		return rect;
 	}
 
+	struct WindowPos
+	{
+		int x, y, cx, cy;
+
+		WindowPos(int a, int b, int c, int d) : x(a), y(b), cx(c), cy(d)
+		{}
+
+		WindowPos(RECT rect) : WindowPos{ rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top }
+		{}
+
+		WindowPos(HWND hwnd) : WindowPos(GetWindowRect(hwnd))
+		{}
+
+		operator RECT()
+		{
+			return { x, y, x + cx, y + cy };
+		}
+	};
+
 	inline SIZE GetClientRectSizeOffset(CREATESTRUCT * p)
 	{
 		RECT rect{ p->x, p->y, p->cx, p->cy };
