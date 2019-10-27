@@ -7,6 +7,9 @@
 #define MACRO_LOGGER_NUMBER2TEXT(n)	MACRO_LOGGER_NUMBER2TEXT2(n)
 #define MACRO_LOGGER_HEADER(file, line, func)	TEXT(file "(" MACRO_LOGGER_NUMBER2TEXT(line) "): " func)
 
+#define FAIL(...) if (::IsDebuggerPresent()) { logger::OutputDebugConsole(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__); }
+#define INFO(...) if (::IsDebuggerPresent()) { logger::OutputDebugConsole(MACRO_LOGGER_HEADER(__FILE__, __LINE__, __FUNCTION__), __VA_ARGS__); }
+
 namespace logger
 {
 	template <typename P>
@@ -34,11 +37,10 @@ namespace logger
 	class what
 	{
 		const long code;
-		const wchar_t * message;
 
 	public:
-		what(long c) : code(c), message(nullptr) {}
-		~what();
+		what(long c) : code(c) {}
+		~what() = default;
 
 		std::wostream & Print(std::wostream & os) const;
 	};

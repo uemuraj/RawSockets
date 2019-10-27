@@ -3,25 +3,21 @@
 
 namespace logger
 {
-	what::~what()
-	{
-		::LocalFree((HLOCAL) message);
-	}
-
 	std::wostream & what::Print(std::wostream & os) const
 	{
-		os << code;
+		wchar_t * message{};
 
-		if (message == nullptr)
+		DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK;
+
+		if (::FormatMessage(flags, nullptr, code, 0, (LPWSTR) &message, 0, nullptr) == 0)
 		{
-			DWORD flags = FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK;
-
-			if (::FormatMessage(flags, nullptr, code, 0, (LPTSTR) &message, 0, nullptr) == 0)
-			{
-				return os;
-			}
+			return os << code;
 		}
 
-		return os << L' ' << message;
+		os << code << L' ' << message;
+
+		::HeapFree(::GetProcessHeap(), 0, message);
+
+		return os;
 	}
 }
