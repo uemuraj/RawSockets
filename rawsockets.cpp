@@ -118,17 +118,17 @@ void RawSocketsConfig::SaveWindowPos(WindowPos && windowPos)
 
 WindowPos RawSocketsConfig::LoadWindowPos()
 {
-	WindowPos windowPos(CW_USEDEFAULT, 0, CW_USEDEFAULT, 0);
+	int x = 0, y = 0, cx = 0, cy = 0;
 
-	Get(L"window.x", windowPos.x);
-	Get(L"window.y", windowPos.y);
-	Get(L"window.cx", windowPos.cx);
-	Get(L"window.cy", windowPos.cy);
+	Get(L"window.x", x);
+	Get(L"window.y", y);
+	Get(L"window.cx", cx);
+	Get(L"window.cy", cy);
 
-	if (windowPos.x > 0 && windowPos.y > 0 && windowPos.cx > 0 && windowPos.cy > 0)
+	if (x > 0 && y > 0 && cx > 0 && cy > 0)
 	{
 		// 最も近いモニタを調べ、ウィンドウ全体が表示可能であれば、位置とサイズを採用する
-		RECT rect = windowPos;
+		RECT rect = WindowPos(x, y, cx, cy);
 		HMONITOR handle = ::MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
 		MONITORINFO info{ sizeof(info) };
 
@@ -136,14 +136,12 @@ WindowPos RawSocketsConfig::LoadWindowPos()
 		{
 			if (::PtInRect(&info.rcWork, { rect.left, rect.top }) && ::PtInRect(&info.rcWork, { rect.right, rect.bottom }))
 			{
-				return windowPos;
+				return { x, y, cx, cy };
 			}
 
-			windowPos.x = CW_USEDEFAULT; // 位置は採用しない
-			return windowPos;
+			return { CW_USEDEFAULT, 0, cx, cy }; // 位置は採用しない
 		}
 	}
 
-	windowPos.x = windowPos.cx = CW_USEDEFAULT; // 位置もサイズも採用しない
-	return windowPos;
+	return { CW_USEDEFAULT, 0, CW_USEDEFAULT, 0 }; // 位置もサイズも採用しない
 }
