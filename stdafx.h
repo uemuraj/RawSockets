@@ -62,17 +62,17 @@ namespace
 		return rect;
 	}
 
-	struct WindowPos
+	struct WindowRect
 	{
 		int x, y, cx, cy;
 
-		WindowPos(int a, int b, int c, int d) : x(a), y(b), cx(c), cy(d)
+		WindowRect(int a, int b, int c, int d) : x(a), y(b), cx(c), cy(d)
 		{}
 
-		WindowPos(RECT rect) : WindowPos{ rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top }
+		WindowRect(RECT rect) : WindowRect{ rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top }
 		{}
 
-		WindowPos(HWND hwnd) : WindowPos(GetWindowRect(hwnd))
+		WindowRect(HWND hwnd) : WindowRect(GetWindowRect(hwnd))
 		{}
 
 		operator RECT()

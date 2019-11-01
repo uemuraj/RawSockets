@@ -48,6 +48,6 @@ struct RawSocketsConfig : Registry
 {
 	using Registry::Registry;
 
-	void SaveWindowPos(WindowPos && windowPos);
-	WindowPos LoadWindowPos();
+	void SaveWindowRect(WindowRect &&);
+	WindowRect LoadWindowRect();
 };

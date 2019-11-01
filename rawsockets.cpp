@@ -75,7 +75,7 @@ RawSockets::~RawSockets()
 
 HWND RawSocketsMainWindow::Create(HINSTANCE hInstance, LPCWSTR className, LPCWSTR windowName)
 {
-	auto [x, y, cx, cy] = g_config.LoadWindowPos();
+	auto [x, y, cx, cy] = g_config.LoadWindowRect();
 
 	return ::CreateWindowEx(0, className, windowName, WS_OVERLAPPEDWINDOW, x, y, cx, cy, nullptr, nullptr, hInstance, nullptr);
 }
@@ -107,7 +107,7 @@ LRESULT RawSocketsMainWindow::OnCreate(HWND hwnd, CREATESTRUCT * createStruct)
 	m_offset = ::GetClientRectSizeOffset(createStruct);
 	m_client = ::GetClientRectSize(createStruct, m_offset);
 	m_status = ::CreateStatusWindow(WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP, nullptr, hwnd, 100);
-	m_report = ::CreateWindow(WC_LISTVIEW, L"", WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_NOCOLUMNHEADER, 0, 0, m_client.cx, m_client.cy - WindowPos(m_status).cy, hwnd, (HMENU) 200, createStruct->hInstance, nullptr);
+	m_report = ::CreateWindow(WC_LISTVIEW, L"", WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_NOCOLUMNHEADER, 0, 0, m_client.cx, m_client.cy - WindowRect(m_status).cy, hwnd, (HMENU) 200, createStruct->hInstance, nullptr);
 
 	// TODO: ステータスバーの高さを保存しておく
 
@@ -134,7 +134,7 @@ LRESULT RawSocketsMainWindow::OnCreate(HWND hwnd, CREATESTRUCT * createStruct)
 
 LRESULT RawSocketsMainWindow::OnDestroy(HWND hwnd)
 {
-	g_config.SaveWindowPos(hwnd);
+	g_config.SaveWindowRect(hwnd);
 	::PostQuitMessage(0);
 	return 0;
 }
@@ -143,19 +143,19 @@ LRESULT RawSocketsMainWindow::OnSize(HWND hwnd, WINDOWPOS * windowPos)
 {
 	m_client = ::GetClientRectSize(windowPos, m_offset);
 	::SendMessage(m_status, WM_SIZE, 0, MAKELPARAM(m_client.cx, m_client.cy));
-	::SetWindowPos(m_report, nullptr, 0, 0, m_client.cx, m_client.cy - WindowPos(m_status).cy, SWP_NOMOVE);
+	::SetWindowPos(m_report, nullptr, 0, 0, m_client.cx, m_client.cy - WindowRect(m_status).cy, SWP_NOMOVE);
 	return 0;
 }
 
-void RawSocketsConfig::SaveWindowPos(WindowPos && windowPos)
+void RawSocketsConfig::SaveWindowRect(WindowRect && rect)
 {
-	Set(L"window.x", windowPos.x);
-	Set(L"window.y", windowPos.y);
-	Set(L"window.cx", windowPos.cx);
-	Set(L"window.cy", windowPos.cy);
+	Set(L"window.x", rect.x);
+	Set(L"window.y", rect.y);
+	Set(L"window.cx", rect.cx);
+	Set(L"window.cy", rect.cy);
 }
 
-WindowPos RawSocketsConfig::LoadWindowPos()
+WindowRect RawSocketsConfig::LoadWindowRect()
 {
 	int x = 0, y = 0, cx = 0, cy = 0;
 
@@ -167,7 +167,7 @@ WindowPos RawSocketsConfig::LoadWindowPos()
 	if (x > 0 && y > 0 && cx > 0 && cy > 0)
 	{
 		// 最も近いモニタを調べ、ウィンドウ全体が表示可能であれば、位置とサイズを採用する
-		RECT rect = WindowPos(x, y, cx, cy);
+		RECT rect = WindowRect(x, y, cx, cy);
 		HMONITOR handle = ::MonitorFromRect(&rect, MONITOR_DEFAULTTONEAREST);
 		MONITORINFO info{ sizeof(info) };
 
