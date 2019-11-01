@@ -4,8 +4,6 @@
 
 using logger::what;
 
-RawSocketsConfig g_config(L"Software\\uemuraj\\RawSockets");
-
 
 WinSock::WinSock() : WSADATA{}
 {
@@ -75,7 +73,7 @@ RawSockets::~RawSockets()
 
 HWND RawSocketsMainWindow::Create(HINSTANCE hInstance, LPCWSTR className, LPCWSTR windowName)
 {
-	auto [x, y, cx, cy] = g_config.LoadWindowRect();
+	auto [x, y, cx, cy] = RawSocketsConfig().LoadWindowRect();
 
 	return ::CreateWindowEx(0, className, windowName, WS_OVERLAPPEDWINDOW, x, y, cx, cy, nullptr, nullptr, hInstance, nullptr);
 }
@@ -107,13 +105,15 @@ LRESULT RawSocketsMainWindow::OnCreate(HWND hwnd, CREATESTRUCT * createStruct)
 	m_offset = ::GetClientRectSizeOffset(createStruct);
 	m_client = ::GetClientRectSize(createStruct, m_offset);
 	m_status = ::CreateStatusWindow(WS_CHILD | WS_VISIBLE | CCS_BOTTOM | SBARS_SIZEGRIP, nullptr, hwnd, 100);
-	m_report = ::CreateWindow(WC_LISTVIEW, L"", WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_NOCOLUMNHEADER, 0, 0, m_client.cx, m_client.cy - WindowRect(m_status).cy, hwnd, (HMENU) 200, createStruct->hInstance, nullptr);
+	m_report = ::CreateWindow(WC_LISTVIEW, L"", WS_CHILD | WS_VISIBLE | LVS_REPORT | LVS_OWNERDATA, 0, 0, m_client.cx, m_client.cy - WindowRect(m_status).cy, hwnd, (HMENU) 200, createStruct->hInstance, nullptr);
 
 	// TODO: ステータスバーの高さを保存しておく
 
 	// TODO: リストビューのスタイルを決める
+	//ListView_SetExtendedListViewStyleEx(m_report, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
+
+	// TODO: リストビューのカラム構成を切り替える仕組み
 	wchar_t szColmun[] = L"カラム０";
-	wchar_t szItem[] = L"アイテム０";
 
 	LVCOLUMN lvc{ LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM };
 
@@ -122,19 +122,17 @@ LRESULT RawSocketsMainWindow::OnCreate(HWND hwnd, CREATESTRUCT * createStruct)
 	lvc.cx = 100;
 	lvc.fmt = LVCFMT_LEFT;
 
-	LVITEM lvi{ LVIF_TEXT };
-	lvi.pszText = szItem;
+	//ListView_InsertColumn(m_report, 0, &lvc);
 
-	ListView_InsertColumn(m_report, 0, &lvc);
-	ListView_InsertItem(m_report, &lvi);
-	//ListView_SetExtendedListViewStyleEx(m_report, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
+	// TODO: リストビューのアイテム数を更新する仕組み
+	ListView_SetItemCountEx(m_report, 0, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
 
 	return 0;
 }
 
 LRESULT RawSocketsMainWindow::OnDestroy(HWND hwnd)
 {
-	g_config.SaveWindowRect(hwnd);
+	RawSocketsConfig().SaveWindowRect(hwnd);
 	::PostQuitMessage(0);
 	return 0;
 }

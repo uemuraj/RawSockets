@@ -44,9 +44,13 @@ private:
 	LRESULT OnSize(HWND hwnd, WINDOWPOS * windowPos);
 };
 
-struct RawSocketsConfig : Registry
+class RawSocketsConfig : Registry
 {
-	using Registry::Registry;
+	inline static const wchar_t * m_config_key = L"Software\\uemuraj\\RawSockets";
+
+public:
+	RawSocketsConfig() : Registry(m_config_key) {}
+	~RawSocketsConfig() = default;
 
 	void SaveWindowRect(WindowRect &&);
 	WindowRect LoadWindowRect();
