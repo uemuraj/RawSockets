@@ -4,8 +4,7 @@
 
 using logger::what;
 
-
-WinSock::WinSock() : WSADATA{}
+RawSockets::RawSockets() : WSADATA{}
 {
 	if (auto error = ::WSAStartup(MAKEWORD(2, 2), this))
 	{
@@ -17,7 +16,7 @@ WinSock::WinSock() : WSADATA{}
 	}
 }
 
-WinSock::~WinSock()
+RawSockets::~RawSockets()
 {
 	if (::WSACleanup())
 	{
@@ -25,15 +24,13 @@ WinSock::~WinSock()
 	}
 }
 
-std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>> WinSock::GetProtocols()
+int RawSockets::GetProtocolCount()
 {
 	int error{};
 	DWORD length{};
 
 	if (::WSCEnumProtocols(nullptr, nullptr, &length, &error) == SOCKET_ERROR)
 	{
-		INFO(what(error));
-
 		if (error == WSAENOBUFS)
 		{
 			size_t n = length / sizeof(WSAPROTOCOL_INFO) + 1; // バイト数でなく要素数が必要
@@ -43,32 +40,19 @@ std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>> WinSock::GetProtocols()
 
 			if (count != SOCKET_ERROR)
 			{
-				return { count, std::move(buffer) };
+				m_protocols = std::move(buffer);
+				return count;
 			}
 		}
 	}
 
 	FAIL(what(error));
-	return {};
+	return 0;
 }
 
-RawSockets::RawSockets()
+const wchar_t * RawSockets::GetProtocolName(int index)
 {
-	auto [count, protocols] = GetProtocols();
-
-	for (decltype(count) i = 0; i < count; ++i)
-	{
-		INFO(protocols[i].iSocketType, protocols[i].szProtocol);
-
-		if (protocols[i].iSocketType == SOCK_RAW)
-		{
-			m_protocols.emplace_back(protocols[i]);
-		}
-	}
-}
-
-RawSockets::~RawSockets()
-{
+	return m_protocols[index].szProtocol;
 }
 
 HWND RawSocketsMainWindow::Create(HINSTANCE hInstance, LPCWSTR className, LPCWSTR windowName)
@@ -95,6 +79,12 @@ LRESULT RawSocketsMainWindow::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 		}
 		return 0;
 
+	case WM_NOTIFY:
+		return OnNotify(hwnd, (NMHDR *) lParam);
+
+	case Mode::ProtocolView:
+		return ProtocolViewMode();
+
 	default:
 		return ::DefWindowProc(hwnd, uMsg, wParam, lParam);
 	}
@@ -112,21 +102,7 @@ LRESULT RawSocketsMainWindow::OnCreate(HWND hwnd, CREATESTRUCT * createStruct)
 	// TODO: リストビューのスタイルを決める
 	//ListView_SetExtendedListViewStyleEx(m_report, LVS_EX_GRIDLINES, LVS_EX_GRIDLINES);
 
-	// TODO: リストビューのカラム構成を切り替える仕組み
-	wchar_t szColmun[] = L"カラム０";
-
-	LVCOLUMN lvc{ LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM };
-
-	lvc.iSubItem = 0;
-	lvc.pszText = szColmun;
-	lvc.cx = 100;
-	lvc.fmt = LVCFMT_LEFT;
-
-	//ListView_InsertColumn(m_report, 0, &lvc);
-
-	// TODO: リストビューのアイテム数を更新する仕組み
-	ListView_SetItemCountEx(m_report, 0, LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
-
+	::PostMessage(hwnd, Mode::ProtocolView, 0, 0);
 	return 0;
 }
 
@@ -142,6 +118,46 @@ LRESULT RawSocketsMainWindow::OnSize(HWND hwnd, WINDOWPOS * windowPos)
 	m_client = ::GetClientRectSize(windowPos, m_offset);
 	::SendMessage(m_status, WM_SIZE, 0, MAKELPARAM(m_client.cx, m_client.cy));
 	::SetWindowPos(m_report, nullptr, 0, 0, m_client.cx, m_client.cy - WindowRect(m_status).cy, SWP_NOMOVE);
+	return 0;
+}
+
+LRESULT RawSocketsMainWindow::OnNotify(HWND hwnd, NMHDR * nmhdr)
+{
+	switch (nmhdr->code)
+	{
+	case LVN_GETDISPINFO:
+		{
+			auto p = (NMLVDISPINFO *) nmhdr;
+
+			if (p->item.iSubItem == 0)
+			{
+				p->item.pszText = const_cast<wchar_t *>(GetProtocolName(p->item.iItem));
+				return true;
+			}
+		}
+		break;
+	}
+
+	return 0;
+}
+
+LRESULT RawSocketsMainWindow::ProtocolViewMode()
+{
+	// TODO: リストビューのカラム構成を切り替える仕組み
+	wchar_t szColmun[] = L"カラム０";
+
+	LVCOLUMN lvc{ LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM };
+
+	lvc.iSubItem = 0;
+	lvc.pszText = szColmun;
+	lvc.cx = 100;
+	lvc.fmt = LVCFMT_LEFT;
+
+	ListView_InsertColumn(m_report, 0, &lvc);
+
+	// TODO: リストビューのアイテム数を更新する仕組み
+	ListView_SetItemCountEx(m_report, GetProtocolCount(), LVSICF_NOSCROLL/* | LVSICF_NOINVALIDATEALL*/);
+
 	return 0;
 }
 

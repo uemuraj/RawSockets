@@ -8,31 +8,25 @@
 #include <memory>
 #include <vector>
 
-struct WinSock : WSADATA
+class RawSockets : WSADATA
 {
-	WinSock();
-	~WinSock();
-
-	std::pair<int, std::unique_ptr<WSAPROTOCOL_INFO[]>> GetProtocols();
-};
-
-class RawSockets : WinSock
-{
-	std::vector<WSAPROTOCOL_INFO> m_protocols;
+	std::unique_ptr<WSAPROTOCOL_INFO[]> m_protocols;
 
 public:
 	RawSockets();
 	~RawSockets();
+
+	int GetProtocolCount();
+	const wchar_t * GetProtocolName(int index);
 };
 
-class RawSocketsMainWindow
+class RawSocketsMainWindow : RawSockets
 {
 	SIZE m_offset{};
 	SIZE m_client{};
+
 	HWND m_status{};
 	HWND m_report{};
-
-	RawSockets m_rawSockets;
 
 public:
 	HWND Create(HINSTANCE hInstance, LPCWSTR className, LPCWSTR windowName);
@@ -42,6 +36,11 @@ private:
 	LRESULT OnCreate(HWND hwnd, CREATESTRUCT * createStruct);
 	LRESULT OnDestroy(HWND hwnd);
 	LRESULT OnSize(HWND hwnd, WINDOWPOS * windowPos);
+	LRESULT OnNotify(HWND hwnd, NMHDR * nmhdr);
+
+	enum Mode : UINT { ProtocolView = WM_APP };
+
+	LRESULT ProtocolViewMode();
 };
 
 class RawSocketsConfig : Registry
