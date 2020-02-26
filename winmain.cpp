@@ -32,6 +32,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE, _In_ PWSTR, _I
 	if (HWND hwnd = CreateMainWindow(hInstance, mainWindow))
 	{
 		::ShowWindow(hwnd, nCmdShow);
+		::UpdateWindow(hwnd);
 
 		MSG msg{};
 

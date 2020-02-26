@@ -28,6 +28,12 @@ namespace
 			::RegCloseKey(m_hKey);
 		}
 
+		Registry(const Registry &) = delete;
+		Registry(const Registry &&) = delete;
+
+		Registry & operator=(const Registry &) = delete;
+		Registry & operator=(const Registry &&) = delete;
+
 		template <typename V>
 		void Get(const wchar_t * name, V & value)
 		{
@@ -36,23 +42,10 @@ namespace
 			::RegQueryValueExW(m_hKey, name, nullptr, nullptr, (BYTE *) &value, &size);
 		}
 
-		template <typename V>
-		void Set(const wchar_t * name, const V & value)
-		{
-			::RegSetValueExW(m_hKey, name, 0, REG_BINARY, (const BYTE *) &value, sizeof(value));
-		}
-
-		template <>
-		void Set(const wchar_t * name, const long & value)
+		void Set(const wchar_t * name, const int & value)
 		{
 			::RegSetValueExW(m_hKey, name, 0, REG_DWORD, (const BYTE *) &value, sizeof(value));
 		}
-
-		Registry(const Registry &) = delete;
-		Registry & operator=(const Registry &) = delete;
-
-		Registry(const Registry &&) = delete;
-		Registry & operator=(const Registry &&) = delete;
 	};
 
 	inline RECT GetWindowRect(HWND hwnd)

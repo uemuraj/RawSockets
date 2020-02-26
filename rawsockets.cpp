@@ -126,16 +126,16 @@ LRESULT RawSocketsMainWindow::OnNotify(HWND hwnd, NMHDR * nmhdr)
 	switch (nmhdr->code)
 	{
 	case LVN_GETDISPINFO:
-		{
-			auto p = (NMLVDISPINFO *) nmhdr;
+	{
+		auto p = (NMLVDISPINFO *) nmhdr;
 
-			if (p->item.iSubItem == 0)
-			{
-				p->item.pszText = const_cast<wchar_t *>(GetProtocolName(p->item.iItem));
-				return true;
-			}
+		if (p->item.iSubItem == 0)
+		{
+			p->item.pszText = const_cast<wchar_t *>(GetProtocolName(p->item.iItem));
+			return true;
 		}
-		break;
+	}
+	break;
 	}
 
 	return 0;

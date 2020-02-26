@@ -45,10 +45,8 @@ private:
 
 class RawSocketsConfig : Registry
 {
-	inline static const wchar_t * m_config_key = L"Software\\uemuraj\\RawSockets";
-
 public:
-	RawSocketsConfig() : Registry(m_config_key) {}
+	RawSocketsConfig() : Registry(L"Software\\RawSockets") {}
 	~RawSocketsConfig() = default;
 
 	void SaveWindowRect(WindowRect &&);
