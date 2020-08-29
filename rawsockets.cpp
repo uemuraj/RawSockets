@@ -40,6 +40,11 @@ int RawSockets::GetProtocolCount()
 
 			if (count != SOCKET_ERROR)
 			{
+				for (int i = 0; i < count; i++)
+				{
+					INFO(buffer[i].iSocketType, buffer[i].szProtocol);
+				}
+
 				m_protocols = std::move(buffer);
 				return count;
 			}
